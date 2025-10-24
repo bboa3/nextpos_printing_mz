@@ -143,6 +143,9 @@ def render_invoice(invoice_name: str):
     # Company name (bold, centered using ESC/POS alignment)
     company_name = company_info["name"][:width].strip()
     lines.append("\x1Ba\x01\x1BE\x01" + company_name + "\x1BE\x00\x1Ba\x00")
+    lines.append("\1B\61\01" + company_name + "\1B\61\00")
+    lines.append("\1B\1D\61\01" + company_name + "\1B\1D\61\00")
+    lines.append("\1B\7C\63\41" + company_name + "\1B\7C\63\41\00")
     
     # Company address (centered using ESC/POS alignment)
     if company_info["address"]:
