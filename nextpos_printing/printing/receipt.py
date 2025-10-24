@@ -17,7 +17,7 @@ def wrap_text(text: str, width: int = DEFAULT_WIDTH):
 
 
 def format_custom_block(text: str, width: int):
-    """Clean and center-align each line of custom header/footer text."""
+    """Clean and format custom header/footer text."""
     if not text:
         return []
 
@@ -28,12 +28,13 @@ def format_custom_block(text: str, width: int):
     # Strip remaining HTML tags
     clean = frappe.utils.strip_html_tags(clean or "")
 
-    # Split and center using Python string centering
+    # Split and truncate to safe width (40 chars)
     formatted = []
     for ln in [ln.strip() for ln in clean.split("\n") if ln.strip()]:
-        for wrapped in wrap_text(ln, width - 2):
-            # Use Python .center() for compatibility
-            formatted.append(wrapped.center(width))
+        # Truncate each line to 40 chars max to prevent wrapping
+        truncated = ln[:40].strip()
+        if truncated:
+            formatted.append(truncated)
     return formatted
 
 
@@ -146,25 +147,26 @@ def render_invoice(invoice_name: str):
     # ========== HEADER SECTION ==========
     company_info = get_company_info(invoice.company)
     
-    # Company name (bold, centered)
-    company_name = company_info["name"][:width-2].strip()
-    lines.append("\x1BE\x01" + company_name.center(width) + "\x1BE\x00")
+    # Company name (bold, truncated to 40 chars max)
+    company_name = company_info["name"][:40].strip()
+    lines.append("\x1BE\x01" + company_name + "\x1BE\x00")
     
-    # Company address (centered)
+    # Company address (truncated to 40 chars max)
     if company_info["address"]:
-        company_address = company_info["address"][:width-2].strip()
-        lines.append(company_address.center(width))
+        company_address = company_info["address"][:40].strip()
+        lines.append(company_address)
     
-    # Company tax ID (NUIT, centered)
+    # Company tax ID (NUIT, truncated to 40 chars max)
     if company_info["tax_id"]:
-        nuit_line = f"NUIT: {company_info['tax_id']}"[:width-2]
-        lines.append(nuit_line.center(width))
+        nuit_line = f"NUIT: {company_info['tax_id']}"[:40]
+        lines.append(nuit_line)
     
     lines.append(dashed_line(width))
 
     # ========== CUSTOMER INFO SECTION ==========
     customer_display = invoice.customer_name or invoice.customer
     lines.append("\x1BE\x01Cliente:\x1BE\x00 " + customer_display)
+    
     
     # Customer NUIT
     customer_tax_id = get_customer_tax_id(invoice.customer)
@@ -198,42 +200,58 @@ def render_invoice(invoice_name: str):
     lines.append(dashed_line(width))
 
     # ========== ITEMS TABLE ==========
-    # Table column widths (adjust based on paper width)
-    col1_width = int(width * 0.60)  # Description: 60%
-    col2_width = int(width * 0.10)  # Quantity: 10%
-    col3_width = width - col1_width - col2_width - 2  # Value: remaining
+    # Use safe width of 40 chars for table to prevent wrapping
+    safe_table_width = 40
+    col1_width = 22  # Description: ~55%
+    col2_width = 3   # Quantity: ~7%
+    col3_width = 13  # Value: ~33% (remaining)
     
     # Table header
-    header_row = format_table_row("Descricao", "Qtd", "Valor", width, col1_width, col2_width)
+    header_row = format_table_row("Descricao", "Qtd", "Valor", safe_table_width, col1_width, col2_width)
     lines.append("\x1BE\x01" + header_row + "\x1BE\x00")
     
     # Table rows
     for item in invoice.items:
-        item_name = (item.item_name or item.item_code or "")[:col1_width]  # Truncate if too long
+        item_name = (item.item_name or item.item_code or "")[:col1_width]  # Truncate to column width
         qty_str = f"{item.qty:.0f}"
         amount_str = format_amount(item.amount or 0)
         
-        item_row = format_table_row(item_name, qty_str, amount_str, width, col1_width, col2_width)
+        item_row = format_table_row(item_name, qty_str, amount_str, safe_table_width, col1_width, col2_width)
         lines.append(item_row)
     
     lines.append(dashed_line(width))
 
     # ========== TOTALS SECTION ==========
+    # Use safe width of 40 chars for totals to prevent wrapping
+    safe_totals_width = 40
+    
     # Sub-total (net total before taxes)
     subtotal = invoice.net_total or invoice.total
     subtotal_str = format_amount(subtotal, include_currency=True)
-    lines.append("Sub-total".ljust(width - len(subtotal_str)) + subtotal_str)
+    label_width = safe_totals_width - len(subtotal_str)
+    if label_width > 0:
+        lines.append("Sub-total".ljust(label_width) + subtotal_str)
+    else:
+        lines.append("Sub-total " + subtotal_str)
     
     # Taxes
     if getattr(invoice, "taxes", []):
         for tax in invoice.taxes:
-            tax_label = tax.description[:20]  # Truncate tax name
+            tax_label = (tax.description or "Tax")[:15]  # Truncate tax name to 15 chars
             tax_amount_str = format_amount(tax.tax_amount, include_currency=True)
-            lines.append(tax_label.ljust(width - len(tax_amount_str)) + tax_amount_str)
+            label_width = safe_totals_width - len(tax_amount_str)
+            if label_width > 0:
+                lines.append(tax_label.ljust(label_width) + tax_amount_str)
+            else:
+                lines.append(tax_label + " " + tax_amount_str)
     
     # Grand total (bold)
     total_str = format_amount(invoice.grand_total, include_currency=True)
-    lines.append("\x1BE\x01" + "TOTAL".ljust(width - len(total_str)) + total_str + "\x1BE\x00")
+    label_width = safe_totals_width - len(total_str)
+    if label_width > 0:
+        lines.append("\x1BE\x01" + "TOTAL".ljust(label_width) + total_str + "\x1BE\x00")
+    else:
+        lines.append("\x1BE\x01TOTAL " + total_str + "\x1BE\x00")
     
     lines.append(dashed_line(width))
 
@@ -257,27 +275,27 @@ def render_invoice(invoice_name: str):
     lines.append(dashed_line(width))
 
     # ========== FOOTER SECTION ==========
-    # "TOTAL A PAGAR" (bold, centered)
-    total_label = "TOTAL A PAGAR"[:width-2]
-    lines.append("\x1BE\x01" + total_label.center(width) + "\x1BE\x00")
+    # "TOTAL A PAGAR" (bold, truncated to 40 chars)
+    total_label = "TOTAL A PAGAR"[:40]
+    lines.append("\x1BE\x01" + total_label + "\x1BE\x00")
     
-    # Large total amount (double height, centered)
-    large_total = format_amount(invoice.grand_total, include_currency=True)[:width-2].strip()
-    lines.append("\x1B!\x10" + large_total.center(width) + "\x1B!\x00")
+    # Large total amount (double height, truncated to 40 chars)
+    large_total = format_amount(invoice.grand_total, include_currency=True)[:40].strip()
+    lines.append("\x1B!\x10" + large_total + "\x1B!\x00")
     
     lines.append(solid_line(width))
     
-    # "Processado por Computador" (centered)
-    proc_text = "Processado por Computador"[:width-2]
-    lines.append(proc_text.center(width))
+    # "Processado por Computador" (truncated to 40 chars to prevent wrap)
+    proc_text = "Processado por Computador"[:40]
+    lines.append(proc_text)
     lines.append(dashed_line(width))
     
-    # QR Code placeholder (future enhancement, centered)
+    # QR Code placeholder (future enhancement)
     if getattr(settings, "enable_qr_code", False):
-        lines.append("[QR CODE]".center(width))
+        lines.append("[QR CODE]")
         lines.append(dashed_line(width))
     
-    # Company contact information (centered)
+    # Company contact information (truncated to 40 chars)
     contact_parts = []
     if company_info["phone"]:
         contact_parts.append(company_info["phone"])
@@ -286,18 +304,18 @@ def render_invoice(invoice_name: str):
     
     if contact_parts:
         contact_line = " | ".join(contact_parts)
-        # Truncate contact line to fit within width
-        contact_line = contact_line[:width-2].strip()
-        lines.append(contact_line.center(width))
+        # Aggressively truncate to prevent wrapping
+        contact_line = contact_line[:40].strip()
+        lines.append(contact_line)
     
     # Custom footer (if configured)
     if settings.receipt_footer:
         lines.extend(format_custom_block(settings.receipt_footer, width))
     
-    # Document status (centered)
+    # Document status (truncated to 40 chars)
     status_text = "**** FATURA FINAL ****" if invoice.docstatus == 1 else "**** FATURA RASCUNHO ****"
-    status_text = status_text[:width-2].strip()
-    lines.append(status_text.center(width))
+    status_text = status_text[:40].strip()
+    lines.append(status_text)
     
     lines.append("\n\n")  # Feed before cut (reduced from 3 to 2 lines)
 
