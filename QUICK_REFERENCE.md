@@ -27,33 +27,33 @@ bench --site [site] console
 ## 📐 Receipt Layout (48 chars)
 
 ```
-          Company Name (Bold)
-       Company Address, City
-           NUIT: 400567890
+                MozEconomia, SA                 
+     Avenida 25 de Setembro, 1234 — Maputo     
+                NUIT: 400567890                 
 ------------------------------------------------
-Cliente: Customer Name
+Cliente: João Carlos Comércio, Lda
 NUIT: 123456789
-Data: 24/10/2025 10:42
-Fatura Nº: POS-INV-2025-00001
+Data: 24/10/2025 14:30
+Fatura Nº: ACC-PSINV-2025-00030
 ------------------------------------------------
-Descricao                    Qtd     Valor
-Item 1                         1  56,000.00
-Item 2                         2   8,450.00
+Descricao                      Qtd     Valor
+HP ProBook 460 G11               1  56,000.00
+Impressora Térmica 80mm          1   8,450.00
 ------------------------------------------------
-Sub-total                 72,250.00 MZN
-IVA 16%                   11,560.00 MZN
-TOTAL                     83,810.00 MZN
+Sub-total                    72,250.00 MZN
+IVA 16%                      11,560.00 MZN
+TOTAL                        83,810.00 MZN
 ------------------------------------------------
 Pagamento: M-Pesa
 Ref.: MP-20251024-1042
 ------------------------------------------------
-          TOTAL A PAGAR
-        83,810.00 MZN (Large)
+              TOTAL A PAGAR                     
+              83,810.00 MZN                     
 ================================================
-     Processado por Computador
+        Processado por Computador               
 ------------------------------------------------
-+258 84 444 4645 | email@company.com
-      **** FATURA FINAL ****
+  +258 84 444 4645 | cloud@mozeconomia.co.mz  
+        **** FATURA FINAL ****  
 ```
 
 ---
