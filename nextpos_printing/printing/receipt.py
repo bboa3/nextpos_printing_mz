@@ -48,16 +48,16 @@ def format_amount(amount, include_currency=False):
 
 def dashed_line(width):
     """Create a dashed separator line - conservative width for reliable printing."""
-    # Use 42 chars max for 80mm thermal to prevent wrapping
-    safe_width = min(42, width - 2)
+    # Use 44 chars max for 80mm thermal to prevent wrapping
+    safe_width = min(44, width - 2)
     line = "-" * safe_width
     return line
 
 
 def solid_line(width):
     """Create a solid separator line - conservative width for reliable printing."""
-    # Use 42 chars max for 80mm thermal to prevent wrapping
-    safe_width = min(42, width - 2)
+    # Use 44 chars max for 80mm thermal to prevent wrapping
+    safe_width = min(44, width - 2)
     line = "=" * safe_width
     return line
 
@@ -222,8 +222,8 @@ def render_invoice(invoice_name: str):
     lines.append(dashed_line(width))
 
     # ========== TOTALS SECTION ==========
-    # Use safe width of 40 chars for totals to prevent wrapping
-    safe_totals_width = 40
+    # Use safe width of 42 chars for totals to prevent wrapping
+    safe_totals_width = 42
     
     # Sub-total (net total before taxes)
     subtotal = invoice.net_total or invoice.total
