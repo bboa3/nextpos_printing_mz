@@ -152,7 +152,6 @@ def render_invoice(invoice_name: str):
     
     lines.append("")
     lines.append(dashed_line(width))
-    lines.append("")
 
     # ========== CUSTOMER INFO SECTION ==========
     customer_display = invoice.customer_name or invoice.customer
@@ -189,7 +188,6 @@ def render_invoice(invoice_name: str):
     
     lines.append("")
     lines.append(dashed_line(width))
-    lines.append("")
 
     # ========== ITEMS TABLE ==========
     # Table column widths (adjust based on paper width)
@@ -210,9 +208,7 @@ def render_invoice(invoice_name: str):
         item_row = format_table_row(item_name, qty_str, amount_str, width, col1_width, col2_width)
         lines.append(item_row)
     
-    lines.append("")
     lines.append(dashed_line(width))
-    lines.append("")
 
     # ========== TOTALS SECTION ==========
     # Sub-total (net total before taxes)
@@ -231,9 +227,7 @@ def render_invoice(invoice_name: str):
     total_str = format_amount(invoice.grand_total, include_currency=True)
     lines.append("\x1BE\x01" + "TOTAL".ljust(width - len(total_str)) + total_str + "\x1BE\x00")
     
-    lines.append("")
     lines.append(dashed_line(width))
-    lines.append("")
 
     # ========== PAYMENT SECTION ==========
     if getattr(invoice, "payments", []):
@@ -252,35 +246,26 @@ def render_invoice(invoice_name: str):
         change_str = format_amount(change, include_currency=True)
         lines.append("Troco: " + change_str)
     
-    lines.append("")
     lines.append(dashed_line(width))
-    lines.append("")
 
     # ========== FOOTER SECTION ==========
     # "TOTAL A PAGAR" centered
     lines.append("\x1BE\x01" + "TOTAL A PAGAR".center(width) + "\x1BE\x00")
     
-    # Large total amount (double height)
+    # Large total amount (double height only - more compact)
     large_total = format_amount(invoice.grand_total, include_currency=True)
-    lines.append("\x1B!\x30" + large_total.center(width) + "\x1B!\x00")  # Double height + width
+    lines.append("\x1B!\x10" + large_total.center(width) + "\x1B!\x00")  # Double height only
     
-    lines.append("")
     lines.append(solid_line(width))
-    lines.append("")
     
     # "Processado por Computador"
     lines.append("Processado por Computador".center(width))
-    
-    lines.append("")
     lines.append(dashed_line(width))
-    lines.append("")
     
     # QR Code placeholder (future enhancement)
     if getattr(settings, "enable_qr_code", False):
         lines.append("[QR CODE]".center(width))
-        lines.append("")
         lines.append(dashed_line(width))
-        lines.append("")
     
     # Company contact information
     contact_parts = []
@@ -295,16 +280,12 @@ def render_invoice(invoice_name: str):
     
     # Custom footer (if configured)
     if settings.receipt_footer:
-        lines.append("")
         lines.extend(format_custom_block(settings.receipt_footer, width))
-    
-    lines.append("")
-    lines.append("")
     
     # Document status
     status_text = "**** FATURA FINAL ****" if invoice.docstatus == 1 else "**** FATURA RASCUNHO ****"
     lines.append(status_text.center(width))
     
-    lines.append("\n\n\n")  # Feed before cut
+    lines.append("\n\n")  # Feed before cut (reduced from 3 to 2 lines)
 
     return [{"type": "raw", "data": "\n".join(lines)}]
