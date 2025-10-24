@@ -201,8 +201,8 @@ def render_invoice(invoice_name: str):
 
     # ========== ITEMS TABLE ==========
     # Use safe width of 40 chars for table to prevent wrapping
-    safe_table_width = 40
-    col1_width = 22  # Description: ~55%
+    safe_table_width = 42
+    col1_width = 24  # Description: ~57%
     col2_width = 3   # Quantity: ~7%
     col3_width = 13  # Value: ~33% (remaining)
     
