@@ -17,7 +17,7 @@ def wrap_text(text: str, width: int = DEFAULT_WIDTH):
 
 
 def format_custom_block(text: str, width: int):
-    """Clean and center-align each line of custom header/footer text using ESC/POS."""
+    """Clean and center-align each line of custom header/footer text."""
     if not text:
         return []
 
@@ -28,12 +28,12 @@ def format_custom_block(text: str, width: int):
     # Strip remaining HTML tags
     clean = frappe.utils.strip_html_tags(clean or "")
 
-    # Split and center using ESC/POS alignment commands
+    # Split and center using Python string centering
     formatted = []
     for ln in [ln.strip() for ln in clean.split("\n") if ln.strip()]:
-        for wrapped in wrap_text(ln, width):
-            # Use ESC/POS center alignment instead of Python .center()
-            formatted.append("\x1Ba\x01" + wrapped + "\x1Ba\x00")
+        for wrapped in wrap_text(ln, width - 2):
+            # Use Python .center() for compatibility
+            formatted.append(wrapped.center(width))
     return formatted
 
 
@@ -46,13 +46,19 @@ def format_amount(amount, include_currency=False):
 
 
 def dashed_line(width):
-    """Create a dashed separator line."""
-    return "-" * width
+    """Create a dashed separator line - conservative width for reliable printing."""
+    # Use 42 chars max for 80mm thermal to prevent wrapping
+    safe_width = min(42, width - 2)
+    line = "-" * safe_width
+    return line
 
 
 def solid_line(width):
-    """Create a solid separator line."""
-    return "=" * width
+    """Create a solid separator line - conservative width for reliable printing."""
+    # Use 42 chars max for 80mm thermal to prevent wrapping
+    safe_width = min(42, width - 2)
+    line = "=" * safe_width
+    return line
 
 
 def format_table_row(col1, col2, col3, width, col1_width, col2_width):
@@ -140,22 +146,19 @@ def render_invoice(invoice_name: str):
     # ========== HEADER SECTION ==========
     company_info = get_company_info(invoice.company)
     
-    # Company name (bold, centered using ESC/POS alignment)
-    company_name = company_info["name"][:width].strip()
-    lines.append("\x1Ba\x01\x1BE\x01" + company_name + "\x1BE\x00\x1Ba\x00")
-    lines.append("\1B\61\01" + company_name + "\1B\61\00")
-    lines.append("\1B\1D\61\01" + company_name + "\1B\1D\61\00")
-    lines.append("\1B\7C\63\41" + company_name + "\1B\7C\63\41\00")
+    # Company name (bold, centered)
+    company_name = company_info["name"][:width-2].strip()
+    lines.append("\x1BE\x01" + company_name.center(width) + "\x1BE\x00")
     
-    # Company address (centered using ESC/POS alignment)
+    # Company address (centered)
     if company_info["address"]:
-        company_address = company_info["address"][:width].strip()
-        lines.append("\x1Ba\x01" + company_address + "\x1Ba\x00")
+        company_address = company_info["address"][:width-2].strip()
+        lines.append(company_address.center(width))
     
-    # Company tax ID (NUIT, centered using ESC/POS alignment)
+    # Company tax ID (NUIT, centered)
     if company_info["tax_id"]:
-        nuit_line = f"NUIT: {company_info['tax_id']}"[:width]
-        lines.append("\x1Ba\x01" + nuit_line + "\x1Ba\x00")
+        nuit_line = f"NUIT: {company_info['tax_id']}"[:width-2]
+        lines.append(nuit_line.center(width))
     
     lines.append(dashed_line(width))
 
@@ -254,27 +257,27 @@ def render_invoice(invoice_name: str):
     lines.append(dashed_line(width))
 
     # ========== FOOTER SECTION ==========
-    # "TOTAL A PAGAR" (bold, centered using ESC/POS alignment)
-    total_label = "TOTAL A PAGAR"[:width]
-    lines.append("\x1Ba\x01\x1BE\x01" + total_label + "\x1BE\x00\x1Ba\x00")
+    # "TOTAL A PAGAR" (bold, centered)
+    total_label = "TOTAL A PAGAR"[:width-2]
+    lines.append("\x1BE\x01" + total_label.center(width) + "\x1BE\x00")
     
-    # Large total amount (double height, centered using ESC/POS alignment)
-    large_total = format_amount(invoice.grand_total, include_currency=True)[:width].strip()
-    lines.append("\x1Ba\x01\x1B!\x10" + large_total + "\x1B!\x00\x1Ba\x00")
+    # Large total amount (double height, centered)
+    large_total = format_amount(invoice.grand_total, include_currency=True)[:width-2].strip()
+    lines.append("\x1B!\x10" + large_total.center(width) + "\x1B!\x00")
     
     lines.append(solid_line(width))
     
-    # "Processado por Computador" (centered using ESC/POS alignment)
-    proc_text = "Processado por Computador"[:width]
-    lines.append("\x1Ba\x01" + proc_text + "\x1Ba\x00")
+    # "Processado por Computador" (centered)
+    proc_text = "Processado por Computador"[:width-2]
+    lines.append(proc_text.center(width))
     lines.append(dashed_line(width))
     
-    # QR Code placeholder (future enhancement, centered using ESC/POS alignment)
+    # QR Code placeholder (future enhancement, centered)
     if getattr(settings, "enable_qr_code", False):
-        lines.append("\x1Ba\x01[QR CODE]\x1Ba\x00")
+        lines.append("[QR CODE]".center(width))
         lines.append(dashed_line(width))
     
-    # Company contact information (centered using ESC/POS alignment)
+    # Company contact information (centered)
     contact_parts = []
     if company_info["phone"]:
         contact_parts.append(company_info["phone"])
@@ -284,17 +287,17 @@ def render_invoice(invoice_name: str):
     if contact_parts:
         contact_line = " | ".join(contact_parts)
         # Truncate contact line to fit within width
-        contact_line = contact_line[:width].strip()
-        lines.append("\x1Ba\x01" + contact_line + "\x1Ba\x00")
+        contact_line = contact_line[:width-2].strip()
+        lines.append(contact_line.center(width))
     
     # Custom footer (if configured)
     if settings.receipt_footer:
         lines.extend(format_custom_block(settings.receipt_footer, width))
     
-    # Document status (centered using ESC/POS alignment)
+    # Document status (centered)
     status_text = "**** FATURA FINAL ****" if invoice.docstatus == 1 else "**** FATURA RASCUNHO ****"
-    status_text = status_text[:width].strip()
-    lines.append("\x1Ba\x01" + status_text + "\x1Ba\x00")
+    status_text = status_text[:width-2].strip()
+    lines.append(status_text.center(width))
     
     lines.append("\n\n")  # Feed before cut (reduced from 3 to 2 lines)
 
