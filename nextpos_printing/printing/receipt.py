@@ -139,16 +139,19 @@ def render_invoice(invoice_name: str):
     # ========== HEADER SECTION ==========
     company_info = get_company_info(invoice.company)
     
-    # Company name (bold)
-    lines.append("\x1BE\x01" + company_info["name"].center(width) + "\x1BE\x00")
+    # Company name (bold) - truncate to fit width
+    company_name = company_info["name"][:width].strip()
+    lines.append("\x1BE\x01" + company_name.center(width) + "\x1BE\x00")
     
-    # Company address
+    # Company address - truncate to fit width
     if company_info["address"]:
-        lines.append(company_info["address"].center(width))
+        company_address = company_info["address"][:width].strip()
+        lines.append(company_address.center(width))
     
-    # Company tax ID (NUIT)
+    # Company tax ID (NUIT) - should fit within width
     if company_info["tax_id"]:
-        lines.append(f"NUIT: {company_info['tax_id']}".center(width))
+        nuit_line = f"NUIT: {company_info['tax_id']}"[:width]
+        lines.append(nuit_line.center(width))
     
     lines.append("")
     lines.append(dashed_line(width))
@@ -249,17 +252,19 @@ def render_invoice(invoice_name: str):
     lines.append(dashed_line(width))
 
     # ========== FOOTER SECTION ==========
-    # "TOTAL A PAGAR" centered
-    lines.append("\x1BE\x01" + "TOTAL A PAGAR".center(width) + "\x1BE\x00")
+    # "TOTAL A PAGAR" centered - truncate to fit
+    total_label = "TOTAL A PAGAR"[:width]
+    lines.append("\x1BE\x01" + total_label.center(width) + "\x1BE\x00")
     
-    # Large total amount (double height only - more compact)
-    large_total = format_amount(invoice.grand_total, include_currency=True)
+    # Large total amount (double height only - more compact) - truncate to fit
+    large_total = format_amount(invoice.grand_total, include_currency=True)[:width].strip()
     lines.append("\x1B!\x10" + large_total.center(width) + "\x1B!\x00")  # Double height only
     
     lines.append(solid_line(width))
     
-    # "Processado por Computador"
-    lines.append("Processado por Computador".center(width))
+    # "Processado por Computador" - truncate to fit
+    proc_text = "Processado por Computador"[:width]
+    lines.append(proc_text.center(width))
     lines.append(dashed_line(width))
     
     # QR Code placeholder (future enhancement)
@@ -267,7 +272,7 @@ def render_invoice(invoice_name: str):
         lines.append("[QR CODE]".center(width))
         lines.append(dashed_line(width))
     
-    # Company contact information
+    # Company contact information - ensure fits within width
     contact_parts = []
     if company_info["phone"]:
         contact_parts.append(company_info["phone"])
@@ -276,14 +281,17 @@ def render_invoice(invoice_name: str):
     
     if contact_parts:
         contact_line = " | ".join(contact_parts)
+        # Truncate contact line to fit within width
+        contact_line = contact_line[:width].strip()
         lines.append(contact_line.center(width))
     
     # Custom footer (if configured)
     if settings.receipt_footer:
         lines.extend(format_custom_block(settings.receipt_footer, width))
     
-    # Document status
+    # Document status - truncate to fit
     status_text = "**** FATURA FINAL ****" if invoice.docstatus == 1 else "**** FATURA RASCUNHO ****"
+    status_text = status_text[:width].strip()
     lines.append(status_text.center(width))
     
     lines.append("\n\n")  # Feed before cut (reduced from 3 to 2 lines)
