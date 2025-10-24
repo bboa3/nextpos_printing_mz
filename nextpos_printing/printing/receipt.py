@@ -164,10 +164,23 @@ def render_invoice(invoice_name: str):
         lines.append("\x1BE\x01NUIT:\x1BE\x00 " + customer_tax_id)
     
     # Date and time (combine posting_date and posting_time)
-    posting_datetime = datetime.datetime.combine(
-        invoice.posting_date,
-        invoice.posting_time or datetime.time(0, 0)
-    )
+    posting_time = invoice.posting_time
+    if posting_time:
+        # Convert timedelta to time object if needed
+        if isinstance(posting_time, datetime.timedelta):
+            total_seconds = int(posting_time.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            posting_time = datetime.time(hours, minutes)
+        elif isinstance(posting_time, str):
+            # Parse time string "HH:MM:SS"
+            time_parts = posting_time.split(":")
+            posting_time = datetime.time(int(time_parts[0]), int(time_parts[1]))
+        # else: already a datetime.time object
+    else:
+        posting_time = datetime.time(0, 0)
+    
+    posting_datetime = datetime.datetime.combine(invoice.posting_date, posting_time)
     date_str = frappe.utils.format_datetime(posting_datetime, "dd/MM/yyyy HH:mm")
     lines.append("\x1BE\x01Data:\x1BE\x00 " + date_str)
     
@@ -190,9 +203,9 @@ def render_invoice(invoice_name: str):
     
     # Table rows
     for item in invoice.items:
-        item_name = item.item_name[:col1_width]  # Truncate if too long
+        item_name = (item.item_name or item.item_code or "")[:col1_width]  # Truncate if too long
         qty_str = f"{item.qty:.0f}"
-        amount_str = format_amount(item.amount)
+        amount_str = format_amount(item.amount or 0)
         
         item_row = format_table_row(item_name, qty_str, amount_str, width, col1_width, col2_width)
         lines.append(item_row)
