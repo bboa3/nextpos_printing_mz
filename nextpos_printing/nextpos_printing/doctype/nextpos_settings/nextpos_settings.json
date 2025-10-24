@@ -7,7 +7,6 @@
   "editable_grid": 0,
   "track_changes": 0,
   "fields": [
-
     {
       "fieldname": "printing_section",
       "fieldtype": "Section Break",
@@ -36,9 +35,9 @@
       "label": "Paper Width (characters per line)",
       "fieldtype": "Select",
       "options": "\n42\n48\n80",
-      "default": "42"
+      "default": "48",
+      "description": "48 chars for 80mm thermal, 42 chars for 58mm thermal"
     },
-
     {
       "fieldname": "printer_mapping_section",
       "fieldtype": "Section Break",
@@ -50,14 +49,11 @@
       "fieldtype": "Table",
       "options": "NextPOS Printer Mapping"
     },
-
-
     {
       "fieldname": "layout_section",
       "fieldtype": "Section Break",
       "label": "Receipt Layout"
     },
-    
     {
       "fieldname": "receipt_header",
       "label": "Custom Header Text",
@@ -92,8 +88,12 @@
       "fieldtype": "Text Editor",
       "description": "Add promo messages, disclaimers, or thank-you notes to appear at the bottom."
     },
-
-
+    {
+      "fieldname": "enable_qr_code",
+      "label": "Enable QR Code",
+      "fieldtype": "Check",
+      "description": "Display QR code placeholder on receipt (requires QR code implementation)"
+    },
     {
       "fieldname": "control_section",
       "fieldtype": "Section Break",
@@ -128,7 +128,6 @@
       "label": "Test Drawer",
       "fieldtype": "Button"
     },
-
     {
       "fieldname": "advanced_section",
       "fieldtype": "Section Break",
@@ -159,7 +158,6 @@
       "label": "Debug Raw Output",
       "fieldtype": "Check"
     },
-
     {
       "fieldname": "setup_section",
       "fieldtype": "Section Break",
@@ -171,7 +169,6 @@
       "fieldtype": "Button"
     }
   ],
-
   "permissions": [
     {
       "role": "System Manager",
