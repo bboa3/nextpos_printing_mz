@@ -1,0 +1,184 @@
+{
+  "doctype": "DocType",
+  "name": "NextPOS Settings",
+  "module": "Nextpos Printing",
+  "custom": 0,
+  "issingle": 1,
+  "editable_grid": 0,
+  "track_changes": 0,
+  "fields": [
+
+    {
+      "fieldname": "printing_section",
+      "fieldtype": "Section Break",
+      "label": "Printing Settings"
+    },
+    {
+      "fieldname": "default_printer",
+      "label": "Default Printer",
+      "fieldtype": "Data",
+      "description": "Name of the default printer (exact name as in system)."
+    },
+    {
+      "fieldname": "enable_auto_print",
+      "label": "Enable Printing by Default",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "print_copies",
+      "label": "Number of Copies",
+      "fieldtype": "Int",
+      "default": "1"
+    },
+    {
+      "fieldname": "paper_width",
+      "label": "Paper Width (characters per line)",
+      "fieldtype": "Select",
+      "options": "\n42\n48\n80",
+      "default": "42"
+    },
+
+    {
+      "fieldname": "printer_mapping_section",
+      "fieldtype": "Section Break",
+      "label": "Printer Mappings"
+    },
+    {
+      "fieldname": "printer_mappings",
+      "label": "Printer Mappings",
+      "fieldtype": "Table",
+      "options": "NextPOS Printer Mapping"
+    },
+
+
+    {
+      "fieldname": "layout_section",
+      "fieldtype": "Section Break",
+      "label": "Receipt Layout"
+    },
+    
+    {
+      "fieldname": "receipt_header",
+      "label": "Custom Header Text",
+      "fieldtype": "Text Editor",
+      "description": "Add store name, tagline, address, or any formatted text to appear at the top of the receipt."
+    },
+    {
+      "fieldname": "show_address",
+      "label": "Show Company Address / Phone",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "show_tax",
+      "label": "Show Tax Details",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "show_item_code",
+      "label": "Show Item Code / Barcode",
+      "fieldtype": "Check"
+    },
+    {
+      "fieldname": "show_cashier",
+      "label": "Show Cashier Name",
+      "fieldtype": "Check"
+    },
+    {
+      "fieldname": "receipt_footer",
+      "label": "Custom Footer Text",
+      "fieldtype": "Text Editor",
+      "description": "Add promo messages, disclaimers, or thank-you notes to appear at the bottom."
+    },
+
+
+    {
+      "fieldname": "control_section",
+      "fieldtype": "Section Break",
+      "label": "Printer Control"
+    },
+    {
+      "fieldname": "cut_mode",
+      "label": "Cut Mode",
+      "fieldtype": "Select",
+      "options": "\nNone\nFull Cut\nPartial Cut",
+      "default": "Full Cut"
+    },
+    {
+      "fieldname": "feed_before_cut",
+      "label": "Feed Lines Before Cut",
+      "fieldtype": "Int",
+      "default": "5"
+    },
+    {
+      "fieldname": "open_cash_drawer",
+      "label": "Open Cash Drawer After Print",
+      "fieldtype": "Check"
+    },
+    {
+      "fieldname": "drawer_pin",
+      "label": "Cash Drawer Pin",
+      "fieldtype": "Int",
+      "description": "Depends on printer port, usually 2 or 3."
+    },
+    {
+      "fieldname": "test_drawer",
+      "label": "Test Drawer",
+      "fieldtype": "Button"
+    },
+
+    {
+      "fieldname": "advanced_section",
+      "fieldtype": "Section Break",
+      "label": "Advanced",
+      "collapsible": 1,
+      "collapsible_depends_on": ""
+    },
+    {
+      "fieldname": "encoding_type",
+      "label": "Encoding Type",
+      "fieldtype": "Select",
+      "options": "\nUTF-8\nCP437\nCP850",
+      "default": "UTF-8"
+    },
+    {
+      "fieldname": "wrap_long_names",
+      "label": "Wrap Long Item Names",
+      "fieldtype": "Check",
+      "default": "1"
+    },
+    {
+      "fieldname": "test_print",
+      "label": "Print Test Receipt",
+      "fieldtype": "Button"
+    },
+    {
+      "fieldname": "debug_raw",
+      "label": "Debug Raw Output",
+      "fieldtype": "Check"
+    },
+
+    {
+      "fieldname": "setup_section",
+      "fieldtype": "Section Break",
+      "label": "Setup"
+    },
+    {
+      "fieldname": "run_setup_wizard",
+      "label": "Run Setup Wizard",
+      "fieldtype": "Button"
+    }
+  ],
+
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    }
+  ]
+}
