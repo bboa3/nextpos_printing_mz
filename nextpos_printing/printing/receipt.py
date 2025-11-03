@@ -128,11 +128,83 @@ def get_company_address(company):
 
 
 def get_customer_tax_id(customer_name):
-    """Retrieve customer tax ID (NUIT)."""
+    """Retrieve customer tax ID (NUIT).
+    
+    Returns empty string if no tax ID found or on any error.
+    """
     try:
-        customer = frappe.get_doc("Customer", customer_name)
-        return customer.tax_id or ""
-    except:
+        if not customer_name or not frappe.db.exists("Customer", customer_name):
+            return ""
+        
+        tax_id = frappe.db.get_value("Customer", customer_name, "tax_id")
+        return str(tax_id).strip() if tax_id else ""
+    except Exception as e:
+        frappe.log_error(
+            f"Error fetching tax ID for customer '{customer_name}': {str(e)}", 
+            "NextPOS Tax ID Lookup Error"
+        )
+        return ""
+
+
+def get_customer_phone(customer_name):
+    """Retrieve customer mobile phone number.
+    
+    Priority:
+    1. Customer.mobile_no (direct field)
+    2. Customer's primary contact mobile
+    3. Any linked contact with mobile number
+    
+    Returns empty string if no phone found or on any error.
+    """
+    try:
+        # Check if customer exists
+        if not customer_name or not frappe.db.exists("Customer", customer_name):
+            return ""
+        
+        # Method 1: Check Customer.mobile_no field directly (most common)
+        mobile_no = frappe.db.get_value("Customer", customer_name, "mobile_no")
+        if mobile_no:
+            return str(mobile_no).strip()
+        
+        # Method 2: Check customer's primary contact
+        customer_primary_contact = frappe.db.get_value("Customer", customer_name, "customer_primary_contact")
+        if customer_primary_contact:
+            try:
+                contact_mobile = frappe.db.get_value("Contact", customer_primary_contact, "mobile_no")
+                if contact_mobile:
+                    return str(contact_mobile).strip()
+            except Exception:
+                pass  # Primary contact might not exist, continue to next method
+        
+        # Method 3: Search for any contact linked to this customer
+        try:
+            contacts = frappe.get_all(
+                "Dynamic Link",
+                filters={
+                    "link_doctype": "Customer",
+                    "link_name": customer_name,
+                    "parenttype": "Contact"
+                },
+                fields=["parent"],
+                limit=1
+            )
+            
+            if contacts and contacts[0].get("parent"):
+                contact_mobile = frappe.db.get_value("Contact", contacts[0].parent, "mobile_no")
+                if contact_mobile:
+                    return str(contact_mobile).strip()
+        except Exception:
+            pass  # No linked contacts found, that's okay
+        
+        # No phone number found
+        return ""
+        
+    except Exception as e:
+        # Log error but don't break receipt printing
+        frappe.log_error(
+            f"Error fetching phone for customer '{customer_name}': {str(e)}", 
+            "NextPOS Phone Lookup Error"
+        )
         return ""
 
 
@@ -167,6 +239,10 @@ def render_invoice(invoice_name: str):
     customer_display = invoice.customer_name or invoice.customer
     lines.append("\x1BE\x01Cliente:\x1BE\x00 " + customer_display)
     
+    # Customer Phone Number
+    customer_phone = get_customer_phone(invoice.customer)
+    if customer_phone:
+        lines.append("\x1BE\x01Tel:\x1BE\x00 " + customer_phone)
     
     # Customer NUIT
     customer_tax_id = get_customer_tax_id(invoice.customer)

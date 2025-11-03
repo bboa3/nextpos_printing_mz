@@ -224,7 +224,10 @@
         `;
         posWrapper.prepend(left);
 
-        // Right Sidebar
+        // Right Sidebar - REMOVED: Cash Drawer button disabled per requirements
+        // Note: Auto-drawer functionality (configured in NextPOS Settings) still works
+        // The open_drawer() function remains available for programmatic use
+        /*
         const right = document.createElement("div");
         right.id = "npp-sidebar-right";
         right.className = "npp-sidebar npp-right";
@@ -234,6 +237,7 @@
             </button>
         `;
         posWrapper.appendChild(right);
+        */
 
         // Bind actions
         document.getElementById("npp-btn-current").onclick = async () => {
@@ -263,7 +267,7 @@
             }
         };
 
-        document.getElementById("npp-btn-drawer").onclick = window.open_drawer;
+        // document.getElementById("npp-btn-drawer").onclick = window.open_drawer;  // REMOVED - button disabled
     }
 
     // --- Replace ERPNext Print Receipt button ---
