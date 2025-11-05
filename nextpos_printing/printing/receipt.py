@@ -208,6 +208,71 @@ def get_customer_phone(customer_name):
         return ""
 
 
+def get_payment_lines(invoice):
+    """Generate payment section lines for receipt.
+    
+    Handles both single and split payments intelligently:
+    - Single payment: Simple format (just payment method name)
+    - Multiple payments: Detailed format (numbered list with amounts)
+    
+    Filters out zero-amount payments (POS Profile has all methods configured,
+    but only used ones have amount != 0).
+    
+    Args:
+        invoice: POS Invoice or Sales Invoice document
+    
+    Returns:
+        list: Lines to display in payment section (empty list if no active payments)
+    """
+    lines = []
+    
+    try:
+        # Get all payments from invoice
+        payments = getattr(invoice, "payments", [])
+        if not payments:
+            return lines
+        
+        # Filter out zero-amount payments (only show actually used payment methods)
+        active_payments = [p for p in payments if p.amount != 0]
+        
+        if not active_payments:
+            return lines
+        
+        # Single payment - simple format
+        if len(active_payments) == 1:
+            payment = active_payments[0]
+            mode = payment.mode_of_payment or "Dinheiro"
+            lines.append("\x1BE\x01Pagamento:\x1BE\x00 " + mode)
+            
+            # Payment reference (if available)
+            if hasattr(payment, "reference_no") and payment.reference_no:
+                lines.append("\x1BE\x01Ref.:\x1BE\x00 " + payment.reference_no)
+        
+        # Multiple payments (split payment) - detailed format with amounts
+        else:
+            lines.append("\x1BE\x01Pagamentos:\x1BE\x00")
+            for idx, payment in enumerate(active_payments, 1):
+                mode = payment.mode_of_payment or "Dinheiro"
+                # Use absolute value for display (handles returns with negative amounts)
+                payment_amount = abs(payment.amount)
+                amount_str = format_amount(payment_amount, include_currency=True)
+                lines.append(f"  {idx}. {mode}: {amount_str}")
+                
+                # Payment reference (if available)
+                if hasattr(payment, "reference_no") and payment.reference_no:
+                    lines.append(f"     Ref: {payment.reference_no}")
+        
+        return lines
+        
+    except Exception as e:
+        # Log error but don't break receipt printing
+        frappe.log_error(
+            f"Error generating payment lines for invoice '{invoice.name}': {str(e)}", 
+            "NextPOS Payment Display Error"
+        )
+        return lines
+
+
 def render_invoice(invoice_name: str):
     """Render a POS Invoice into ESC/POS raw lines for thermal printers (80mm format)."""
     invoice = frappe.get_doc("POS Invoice", invoice_name)
@@ -332,15 +397,8 @@ def render_invoice(invoice_name: str):
     lines.append(dashed_line(width))
 
     # ========== PAYMENT SECTION ==========
-    if getattr(invoice, "payments", []):
-        for payment in invoice.payments:
-            mode = payment.mode_of_payment or "Dinheiro"
-            lines.append("\x1BE\x01Pagamento:\x1BE\x00 " + mode)
-            
-            # Payment reference (if available)
-            if hasattr(payment, "reference_no") and payment.reference_no:
-                lines.append("\x1BE\x01Ref.:\x1BE\x00 " + payment.reference_no)
-            break  # Show only first payment method
+    payment_lines = get_payment_lines(invoice)
+    lines.extend(payment_lines)
     
     # Change due
     change = getattr(invoice, "change_amount", 0.00)
