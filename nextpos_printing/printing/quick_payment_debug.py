@@ -31,43 +31,68 @@ def check_last_invoices(limit=5):
     print("CHECKING LAST POS INVOICES FOR PAYMENT METHODS")
     print("="*80 + "\n")
     
-    # Get recent POS invoices
-    invoices = frappe.db.sql("""
+    # Get recent POS invoices from both POS Invoice and Sales Invoice (is_pos=1)
+    # Try POS Invoice doctype first
+    pos_invoices = frappe.db.sql("""
         SELECT 
-            si.name,
-            si.customer_name,
-            si.posting_date,
-            si.grand_total,
-            si.pos_profile
-        FROM `tabSales Invoice` si
-        WHERE si.is_pos = 1 
-          AND si.docstatus = 1
-        ORDER BY si.creation DESC
+            name,
+            customer_name,
+            posting_date,
+            grand_total,
+            pos_profile,
+            'POS Invoice' as doctype_used
+        FROM `tabPOS Invoice`
+        WHERE docstatus = 1
+        ORDER BY creation DESC
         LIMIT %s
     """, (limit,), as_dict=True)
     
+    # Get Sales Invoices with is_pos=1 (POSAwesome, custom systems)
+    sales_invoices = frappe.db.sql("""
+        SELECT 
+            name,
+            customer_name,
+            posting_date,
+            grand_total,
+            pos_profile,
+            'Sales Invoice' as doctype_used
+        FROM `tabSales Invoice`
+        WHERE is_pos = 1 
+          AND docstatus = 1
+        ORDER BY creation DESC
+        LIMIT %s
+    """, (limit,), as_dict=True)
+    
+    # Combine and sort by date, take top N
+    invoices = pos_invoices + sales_invoices
+    invoices.sort(key=lambda x: x.posting_date, reverse=True)
+    invoices = invoices[:limit]
+    
     if not invoices:
         print("⚠️  No submitted POS invoices found.")
+        print("     (Checked both POS Invoice and Sales Invoice with is_pos=1)")
         return {"error": "No invoices found"}
     
     results = []
     
     for idx, inv in enumerate(invoices, 1):
         print(f"\n{idx}. Invoice: {inv.name}")
+        print(f"   DocType: {inv.doctype_used}")
         print(f"   Customer: {inv.customer_name}")
         print(f"   Date: {inv.posting_date}")
         print(f"   Total: {inv.grand_total}")
         print(f"   POS Profile: {inv.pos_profile or '(none)'}")
         
-        # Get payment methods for this invoice
-        payments = frappe.db.sql("""
+        # Get payment methods - use correct child table based on doctype
+        payment_table = "tabPOS Invoice Payment" if inv.doctype_used == "POS Invoice" else "tabSales Invoice Payment"
+        payments = frappe.db.sql(f"""
             SELECT 
                 mode_of_payment,
                 amount,
                 type,
                 account,
                 `default`
-            FROM `tabSales Invoice Payment`
+            FROM `{payment_table}`
             WHERE parent = %s
             ORDER BY idx
         """, (inv.name,), as_dict=True)
@@ -117,19 +142,38 @@ def check_specific_invoice(invoice_name):
     print(f"CHECKING INVOICE: {invoice_name}")
     print("="*80 + "\n")
     
-    # Check if invoice exists
-    if not frappe.db.exists("Sales Invoice", invoice_name):
+    # Check which doctype the invoice exists in
+    invoice = None
+    doctype_used = None
+    payment_table = None
+    
+    if frappe.db.exists("POS Invoice", invoice_name):
+        doctype_used = "POS Invoice"
+        payment_table = "tabPOS Invoice Payment"
+        invoice = frappe.db.get_value(
+            "POS Invoice",
+            invoice_name,
+            ["name", "customer", "customer_name", "posting_date", "posting_time", 
+             "grand_total", "pos_profile", "is_pos", "docstatus"],
+            as_dict=True
+        )
+    elif frappe.db.exists("Sales Invoice", invoice_name):
+        doctype_used = "Sales Invoice"
+        payment_table = "tabSales Invoice Payment"
+        invoice = frappe.db.get_value(
+            "Sales Invoice",
+            invoice_name,
+            ["name", "customer", "customer_name", "posting_date", "posting_time", 
+             "grand_total", "pos_profile", "is_pos", "docstatus"],
+            as_dict=True
+        )
+    else:
         print(f"❌ Invoice '{invoice_name}' not found!")
+        print("   (Checked both POS Invoice and Sales Invoice)")
         return {"error": f"Invoice {invoice_name} not found"}
     
-    # Get invoice details
-    invoice = frappe.db.get_value(
-        "Sales Invoice",
-        invoice_name,
-        ["name", "customer", "customer_name", "posting_date", "posting_time", 
-         "grand_total", "pos_profile", "is_pos", "docstatus"],
-        as_dict=True
-    )
+    print(f"Found in: {doctype_used}")
+    print()
     
     print(f"Invoice Details:")
     print(f"  Customer: {invoice.customer_name} ({invoice.customer})")
@@ -140,8 +184,8 @@ def check_specific_invoice(invoice_name):
     print(f"  Status: {['Draft', 'Submitted', 'Cancelled'][invoice.docstatus]}")
     print()
     
-    # Get payments
-    payments = frappe.db.sql("""
+    # Get payments - use correct payment table
+    payments = frappe.db.sql(f"""
         SELECT 
             idx,
             mode_of_payment,
@@ -151,7 +195,7 @@ def check_specific_invoice(invoice_name):
             account,
             `default`,
             reference_no
-        FROM `tabSales Invoice Payment`
+        FROM `{payment_table}`
         WHERE parent = %s
         ORDER BY idx
     """, (invoice_name,), as_dict=True)
