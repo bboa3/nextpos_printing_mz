@@ -83,16 +83,16 @@ def check_last_invoices(limit=5):
         print(f"   Total: {inv.grand_total}")
         print(f"   POS Profile: {inv.pos_profile or '(none)'}")
         
-        # Get payment methods - use correct child table based on doctype
-        payment_table = "tabPOS Invoice Payment" if inv.doctype_used == "POS Invoice" else "tabSales Invoice Payment"
-        payments = frappe.db.sql(f"""
+        # Get payment methods
+        # Both POS Invoice and Sales Invoice use the same payment table: tabSales Invoice Payment
+        payments = frappe.db.sql("""
             SELECT 
                 mode_of_payment,
                 amount,
                 type,
                 account,
                 `default`
-            FROM `{payment_table}`
+            FROM `tabSales Invoice Payment`
             WHERE parent = %s
             ORDER BY idx
         """, (inv.name,), as_dict=True)
@@ -145,11 +145,9 @@ def check_specific_invoice(invoice_name):
     # Check which doctype the invoice exists in
     invoice = None
     doctype_used = None
-    payment_table = None
     
     if frappe.db.exists("POS Invoice", invoice_name):
         doctype_used = "POS Invoice"
-        payment_table = "tabPOS Invoice Payment"
         invoice = frappe.db.get_value(
             "POS Invoice",
             invoice_name,
@@ -159,7 +157,6 @@ def check_specific_invoice(invoice_name):
         )
     elif frappe.db.exists("Sales Invoice", invoice_name):
         doctype_used = "Sales Invoice"
-        payment_table = "tabSales Invoice Payment"
         invoice = frappe.db.get_value(
             "Sales Invoice",
             invoice_name,
@@ -184,8 +181,9 @@ def check_specific_invoice(invoice_name):
     print(f"  Status: {['Draft', 'Submitted', 'Cancelled'][invoice.docstatus]}")
     print()
     
-    # Get payments - use correct payment table
-    payments = frappe.db.sql(f"""
+    # Get payments
+    # Both POS Invoice and Sales Invoice use the same payment table
+    payments = frappe.db.sql("""
         SELECT 
             idx,
             mode_of_payment,
@@ -195,7 +193,7 @@ def check_specific_invoice(invoice_name):
             account,
             `default`,
             reference_no
-        FROM `{payment_table}`
+        FROM `tabSales Invoice Payment`
         WHERE parent = %s
         ORDER BY idx
     """, (invoice_name,), as_dict=True)
